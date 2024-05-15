@@ -21,7 +21,7 @@ class APIClient:
             "messages": [
                 {
                     "role": "system",
-                    "content": "Suggest five travel destinations suitable for a {vacation_type} vacation in {month}. For each destination, provide the name of the destination, the name of the nearest airport, and the airport's IATA code in parentheses in the following format: 'Destination Name - Nearest Airport Name (IATA Code)' output only the requested format."
+                    "content": f"Suggest five travel destinations suitable for a {vacation_type} vacation in {month}. For each destination, provide the name of the destination, the name of the nearest airport, and the airport's IATA code in parentheses in the following format: 'Destination Name - Nearest Airport Name (IATA Code)'. Output only the requested format."
                 }
             ],
             "temperature": 0.5,
@@ -31,8 +31,8 @@ class APIClient:
         try:
             response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=data)
             if response.ok:
-                suggestions = response.json()['choices'][0]['message']['content'].strip().split(',')
-                return [destination.strip() for destination in suggestions]
+                suggestions = response.json()['choices'][0]['message']['content'].strip().split('\n')
+                return [destination.strip() for destination in suggestions if destination.strip()]
             else:
                 raise Exception(f"Failed to fetch suggestions: {response.status_code} - {response.text}")
         except requests.RequestException as e:
@@ -41,13 +41,12 @@ class APIClient:
 
     def extract_iata_code(self, destination):
         match = re.search(r'\((.*?)\)', destination)
-        iata_code = match.group(1) if match else None
-        return iata_code
+        return match.group(1) if match else None
 
     def fetch_flights(self, to_city, date_out, date_return):
         departure_code = "TLV"
         arrival_code = self.extract_iata_code(to_city)
-       
+
         if not arrival_code:
             raise Exception(f"Missing airport code for the destination city: {to_city}")
 
@@ -128,16 +127,44 @@ class APIClient:
     def parse_hotel_data(self, data, budget):
         hotels = data.get("properties", [])
         
-        # Filter hotels that are within the budget
         affordable_hotels = [hotel for hotel in hotels if hotel.get('total_rate', {}).get('extracted_lowest', float('inf')) <= budget]
         if not affordable_hotels:
             print("No hotels found within the given budget.")
             return None
 
-        # Find the hotel closest to the budget from below (i.e., the highest price under the budget)
         closest_hotel = max(affordable_hotels, key=lambda x: x['total_rate']['extracted_lowest'])
 
-        # Create Hotel object for the closest hotel
         closest_hotel_obj = Hotel(price=closest_hotel['total_rate']['extracted_lowest'], name=closest_hotel['name'])
 
         return closest_hotel_obj
+
+    def create_daily_plan(self, destination, vacation_type, start_date, end_date, month):
+        prompt = (f"Create a daily plan for a {vacation_type} vacation in {destination} from {start_date} to {end_date}. "
+                  f"Include activities and suggestions suitable for the month of {month}.")
+
+        headers = {
+            'Authorization': f'Bearer {self.openai_api_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        data = {
+            "model": "gpt-4",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "temperature": 0.7,
+            "max_tokens": 300
+        }
+        
+        try:
+            response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=data)
+            if response.ok:
+                daily_plan = response.json()['choices'][0]['message']['content']
+                return daily_plan
+            else:
+                raise Exception(f"Failed to create daily plan: {response.status_code} - {response.text}")
+        except requests.RequestException as e:
+            raise Exception(f"Failed to create daily plan from the OpenAI API: {e}")
