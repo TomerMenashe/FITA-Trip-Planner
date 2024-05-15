@@ -20,4 +20,4 @@ class Hotel:
         self.price = price
     
     def __repr__(self):
-        return f"Hotel {self.name} at ${self.price} with rating {self.rating}"
+        return f"Hotel {self.name} at ${self.price}"

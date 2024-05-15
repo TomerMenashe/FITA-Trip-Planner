@@ -7,30 +7,25 @@ class TripPlanner:
         self.client = APIClient(openai_api_key, serpapi_key)
 
     def plan_trip(self, vacation_type, start_date, end_date, budget):
-        print("Starting plan_trip method")
         month = datetime.strptime(start_date, "%Y-%m-%d").strftime('%B')
         print(f"Vacation type: {vacation_type}, Month: {month}, Start date: {start_date}, End date: {end_date}, Budget: {budget}")
         try:
             destinations = self.client.suggest_destinations(vacation_type, month)
-            print(f"Suggested destinations: {destinations}")
             trip_options = []
             for destination in destinations:
                 try:
-                    print(f"Fetching flights for {destination}")
                     flight = self.client.fetch_flights(destination, start_date, end_date)
                     if not flight:
                         print(f"No flight found for destination: {destination}")
                         continue
                     
                     remaining_budget = budget - flight.price
-                    print(f"Remaining budget after flight: {remaining_budget}")
                     hotel = self.client.fetch_hotel(destination, start_date, end_date, remaining_budget)
                     if not hotel:
                         print(f"No hotel found within budget for destination: {destination}")
                         continue
                     
                     total_price = flight.price + hotel.price
-                    print(f"Total price for {destination}: {total_price}")
                     trip_options.append((destination, flight, hotel, total_price))
                 except Exception as e:
                     print(f"Error planning trip to {destination}: {e}")
