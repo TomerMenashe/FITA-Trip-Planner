@@ -3,7 +3,6 @@ from models import Flight, Hotel
 import pandas as pd
 
 
-
 class APIClient:
     def __init__(self):
         self.openai_api_key = 'sk-proj-qhejt5MEC6gIQsXrrXUqT3BlbkFJXscAWR9AGMkzSnhapvP7'
@@ -11,12 +10,7 @@ class APIClient:
         self.google_flights_base_url = "https://serpapi.com//search?engine=google_flights"
         self.google_hotels_base_url = "https://serpapi.com/search?engine=google_hotels"
 
-
     def suggest_destinations(self, vacation_type, month):
-        """
-        Uses the OpenAI API to suggest five travel destinations based on the vacation type and month.
-        The request format includes a system and user message to guide the GPT model.
-        """
         headers = {
             'Authorization': f'Bearer {self.openai_api_key}',
             'Content-Type': 'application/json'
@@ -57,7 +51,7 @@ class APIClient:
             return destination[start:end].strip()
         return None
 
-    def fetch_flights(self, from_city, to_city, date_out, date_return):
+    def fetch_flights(self, to_city, date_out, date_return):
         departure_code = "TLV"
         arrival_code = self.extract_iata_code(to_city)
 
@@ -90,16 +84,19 @@ class APIClient:
             "check_in_date": date_checkin,
             "check_out_date": date_checkout,
             "api_key": self.serpapi_key,
-            "max_price": budget
+            "max_price": budget,
         }
-        
+
         try:
             response = requests.get(self.google_hotels_base_url, params=params)
             response.raise_for_status()
             hotel_data = response.json()
-            return self.parse_hotel_data(hotel_data, budget)
+            closest_hotel = self.parse_hotel_data(hotel_data, budget)
+            return closest_hotel
         except requests.RequestException as e:
+            print(f"Failed to fetch hotel details: {e}")
             raise Exception(f"Failed to fetch hotel details: {e}")
+
 
     def parse_flight_data(self, data):
         best_flights = data.get("best_flights", [])
@@ -137,35 +134,38 @@ class APIClient:
         )
 
     def parse_hotel_data(self, data, budget):
-        hotels = data.get("hotels_results", [])
-        affordable_hotels = [hotel for hotel in hotels if hotel['price'] <= budget]
+        hotels = data.get("properties", [])
+        
+        # Filter hotels that are within the budget
+        affordable_hotels = [hotel for hotel in hotels if hotel.get('total_rate', {}).get('extracted_lowest', float('inf')) <= budget]
         if not affordable_hotels:
+            print("No hotels found within the given budget.")
             return None
-        best_hotel = max(affordable_hotels, key=lambda x: x['price'])
-        return Hotel(
-            price=best_hotel['price'], 
-            name=best_hotel['name'], 
-            rating=best_hotel.get('rating', 0)
-        )
 
-# Add test function for fetch_hotels
+        # Find the hotel closest to the budget from below (i.e., the highest price under the budget)
+        closest_hotel = max(affordable_hotels, key=lambda x: x['total_rate']['extracted_lowest'])
+
+        # Create Hotel object for the closest hotel
+        closest_hotel_obj = Hotel(price=closest_hotel['total_rate']['extracted_lowest'], name=closest_hotel['name'])
+
+        return closest_hotel_obj
+
+# Test function to find and print the closest hotel to the budget for each destination
 def test_fetch_hotels():
     client = APIClient()
 
-    destinations = [
-        "Bali",
-        "Los Angeles",
-        "Paris"
+    destinations_budgets = [
+        ("Bali", "2024-06-01", "2024-06-15", 2000),
+        ("Los Angeles", "2024-06-01", "2024-06-15", 2000),
+        ("Paris", "2024-06-01", "2024-06-15", 2000)
     ]
-    date_checkin = "2024-06-01"
-    date_checkout = "2024-06-15"
-    budget = 500  # Maximum budget for hotel per night
 
-    for destination in destinations:
+    for destination, date_checkin, date_checkout, budget in destinations_budgets:
         try:
-            hotel = client.fetch_hotel(destination, date_checkin, date_checkout, budget)
-            if hotel:
-                print(f"Hotel: {hotel.name}, Price: ${hotel.price}, Rating: {hotel.rating}")
+            print(f"\nTesting fetch_hotel for destination: {destination}")
+            closest_hotel = client.fetch_hotel(destination, date_checkin, date_checkout, budget)
+            if closest_hotel:
+                print(f"Closest Hotel to Budget: {closest_hotel.name}, Price: ${closest_hotel.price} per night")
             else:
                 print(f"No hotels found for {destination} within the budget of ${budget} per night")
         except Exception as e:
