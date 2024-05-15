@@ -1,13 +1,13 @@
 import requests
 from models import Flight, Hotel
 import pandas as pd
-
+import re
 
 class APIClient:
-    def __init__(self):
-        self.openai_api_key = 'sk-proj-qhejt5MEC6gIQsXrrXUqT3BlbkFJXscAWR9AGMkzSnhapvP7'
-        self.serpapi_key = '5292a242909f3c34886aaa8b25982b4477e759672e4e3542417c23589d6922b9'
-        self.google_flights_base_url = "https://serpapi.com//search?engine=google_flights"
+    def __init__(self, openai_api_key, serpapi_key):
+        self.openai_api_key = openai_api_key
+        self.serpapi_key = serpapi_key
+        self.google_flights_base_url = "https://serpapi.com/search?engine=google_flights"
         self.google_hotels_base_url = "https://serpapi.com/search?engine=google_hotels"
 
     def suggest_destinations(self, vacation_type, month):
@@ -21,11 +21,7 @@ class APIClient:
             "messages": [
                 {
                     "role": "system",
-                    "content": "Suggest five travel destinations, mention airports cities ita code suitable for the following type of vacation:"
-                },
-                {
-                    "role": "user",
-                    "content": f"{vacation_type} vacation in {month}"
+                    "content": "Suggest five travel destinations suitable for a {vacation_type} vacation in {month}. For each destination, provide the name of the destination, the name of the nearest airport, and the airport's IATA code in parentheses in the following format: 'Destination Name - Nearest Airport Name (IATA Code)' output only the requested format."
                 }
             ],
             "temperature": 0.5,
@@ -36,7 +32,6 @@ class APIClient:
             response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=data)
             if response.ok:
                 suggestions = response.json()['choices'][0]['message']['content'].strip().split(',')
-                print([destination.strip() for destination in suggestions])
                 return [destination.strip() for destination in suggestions]
             else:
                 raise Exception(f"Failed to fetch suggestions: {response.status_code} - {response.text}")
@@ -45,18 +40,16 @@ class APIClient:
             raise Exception("Failed to fetch data from the OpenAI API.")
 
     def extract_iata_code(self, destination):
-        if '(' in destination and ')' in destination:
-            start = destination.find('(') + 1
-            end = destination.find(')')
-            return destination[start:end].strip()
-        return None
+        match = re.search(r'\((.*?)\)', destination)
+        iata_code = match.group(1) if match else None
+        return iata_code
 
     def fetch_flights(self, to_city, date_out, date_return):
         departure_code = "TLV"
         arrival_code = self.extract_iata_code(to_city)
-
+       
         if not arrival_code:
-            raise Exception("Missing airport code for the destination city.")
+            raise Exception(f"Missing airport code for the destination city: {to_city}")
 
         params = {
             "engine": "google_flights",
@@ -97,7 +90,6 @@ class APIClient:
             print(f"Failed to fetch hotel details: {e}")
             raise Exception(f"Failed to fetch hotel details: {e}")
 
-
     def parse_flight_data(self, data):
         best_flights = data.get("best_flights", [])
         if not best_flights:
@@ -109,16 +101,16 @@ class APIClient:
         first_segment = flight_segments[0]
         last_segment = flight_segments[-1]
 
-        departure_airport = first_segment['departure_airport']['name']
-        arrival_airport = last_segment['arrival_airport']['name']
-        departure_time = first_segment['departure_airport']['time']
-        arrival_time = last_segment['arrival_airport']['time']
-        duration = sum(segment['duration'] for segment in flight_segments)
-        airplane = first_segment['airplane']
-        airline = first_segment['airline']
-        travel_class = first_segment['travel_class']
-        flight_number = first_segment['flight_number']
-        price = cheapest_flight['price']
+        departure_airport = first_segment['departure_airport'].get('name', 'Unknown')
+        arrival_airport = last_segment['arrival_airport'].get('name', 'Unknown')
+        departure_time = first_segment['departure_airport'].get('time', 'Unknown')
+        arrival_time = last_segment['arrival_airport'].get('time', 'Unknown')
+        duration = sum(segment.get('duration', 0) for segment in flight_segments)
+        airplane = first_segment.get('airplane', 'Unknown')
+        airline = first_segment.get('airline', 'Unknown')
+        travel_class = first_segment.get('travel_class', 'Unknown')
+        flight_number = first_segment.get('flight_number', 'Unknown')
+        price = cheapest_flight.get('price', 'Unknown')
 
         return Flight(
             price=price,
@@ -149,27 +141,3 @@ class APIClient:
         closest_hotel_obj = Hotel(price=closest_hotel['total_rate']['extracted_lowest'], name=closest_hotel['name'])
 
         return closest_hotel_obj
-
-# Test function to find and print the closest hotel to the budget for each destination
-def test_fetch_hotels():
-    client = APIClient()
-
-    destinations_budgets = [
-        ("Bali", "2024-06-01", "2024-06-15", 2000),
-        ("Los Angeles", "2024-06-01", "2024-06-15", 2000),
-        ("Paris", "2024-06-01", "2024-06-15", 2000)
-    ]
-
-    for destination, date_checkin, date_checkout, budget in destinations_budgets:
-        try:
-            print(f"\nTesting fetch_hotel for destination: {destination}")
-            closest_hotel = client.fetch_hotel(destination, date_checkin, date_checkout, budget)
-            if closest_hotel:
-                print(f"Closest Hotel to Budget: {closest_hotel.name}, Price: ${closest_hotel.price} per night")
-            else:
-                print(f"No hotels found for {destination} within the budget of ${budget} per night")
-        except Exception as e:
-            print(f"Error fetching hotel details for {destination}: {e}")
-
-if __name__ == "__main__":
-    test_fetch_hotels()

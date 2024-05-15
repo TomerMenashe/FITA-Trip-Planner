@@ -15,10 +15,9 @@ class Flight:
         return f"Flight from {self.departure} to {self.arrival} with {self.airline} at ${self.price}, departing at {self.departure_time}, arriving at {self.arrival_time}, duration {self.duration} minutes, airplane {self.airplane}, class {self.travel_class}, flight number {self.flight_number}"
 
 class Hotel:
-    def __init__(self, name, price, rating):
+    def __init__(self, name, price):
         self.name = name
         self.price = price
-        self.rating = rating
     
     def __repr__(self):
         return f"Hotel {self.name} at ${self.price} with rating {self.rating}"
