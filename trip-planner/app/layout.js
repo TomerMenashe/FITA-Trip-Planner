@@ -18,7 +18,7 @@ export default function RootLayout({ children }) {
         </header>
         <main className={styles.mainContent}>{children}</main>
         <footer className={styles.footer}>
-          <p>&copy; 2024 Trip Planner. All rights reserved to Tomer Menashe.</p>
+          <p>&copy; 2024 Trip Planner. All rights reserved to Tomer Menashe & Guy Abrbanel.</p>
         </footer>
       </body>
     </html>

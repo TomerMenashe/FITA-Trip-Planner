@@ -1,6 +1,5 @@
 import requests
 from models import Flight, Hotel
-import pandas as pd
 import re
 
 class APIClient:
@@ -76,7 +75,7 @@ class APIClient:
             "check_in_date": date_checkin,
             "check_out_date": date_checkout,
             "api_key": self.serpapi_key,
-            "max_price": budget,
+            "max_price": int(budget),  # Ensure budget is an integer
         }
 
         try:
@@ -137,34 +136,3 @@ class APIClient:
         closest_hotel_obj = Hotel(price=closest_hotel['total_rate']['extracted_lowest'], name=closest_hotel['name'])
 
         return closest_hotel_obj
-
-    def create_daily_plan(self, destination, vacation_type, start_date, end_date, month):
-        prompt = (f"Create a daily plan for a {vacation_type} vacation in {destination} from {start_date} to {end_date}. "
-                  f"Include activities and suggestions suitable for the month of {month}.")
-
-        headers = {
-            'Authorization': f'Bearer {self.openai_api_key}',
-            'Content-Type': 'application/json'
-        }
-        
-        data = {
-            "model": "gpt-4",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "temperature": 0.7,
-            "max_tokens": 300
-        }
-        
-        try:
-            response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=data)
-            if response.ok:
-                daily_plan = response.json()['choices'][0]['message']['content']
-                return daily_plan
-            else:
-                raise Exception(f"Failed to create daily plan: {response.status_code} - {response.text}")
-        except requests.RequestException as e:
-            raise Exception(f"Failed to create daily plan from the OpenAI API: {e}")

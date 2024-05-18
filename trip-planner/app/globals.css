@@ -1,12 +1,17 @@
-/* globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
 :root {
-  --primary-color: #746c6c;
-  --secondary-color: #0070f3;
-  --font-color: #fff;
+  --primary-color: hsl(34, 8%, 50%);
+  --secondary-color: hsl(36, 36%, 53%);
+  --button-border-radius: 15px; /* Rounded corners */
+  --input-border-radius: 5px;
   --input-border-color: #ccc;
-  --input-border-radius: 8px;
-  --button-border-radius: 8px;
-  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --card-background-color: rgba(230, 232, 234, 0.525); /* Slightly transparent blue */
+  --card-hover-color: rgba(197, 166, 67, 0.773); /* Slightly transparent darker blue */
+  --box-shadow-color: rgba(0, 0, 0, 0.1);
+  --box-shadow-hover-color: rgba(0, 0, 0, 0.2);
+  --background-color: #f0f8ff;
+  --font-color: #333;
   --background-overlay: rgba(0, 0, 0, 0.5);
 }
 

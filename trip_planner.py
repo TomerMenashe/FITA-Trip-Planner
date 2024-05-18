@@ -10,15 +10,14 @@ class TripPlanner:
         self.current_vacation_type = ""
         self.current_start_date = ""
         self.current_end_date = ""
-        self.openai_api_key = openai_api_key  # Store the API key
-        self.serpapi_key = serpapi_key        # Store the SerpAPI key
+        self.openai_api_key = openai_api_key 
+        self.serpapi_key = serpapi_key        
 
     def plan_trip(self, vacation_type, start_date, end_date, budget):
         month = datetime.strptime(start_date, "%Y-%m-%d").strftime('%B')
         self.current_vacation_type = vacation_type
         self.current_start_date = start_date
         self.current_end_date = end_date
-        print(f"Vacation type: {vacation_type}, Month: {month}, Start date: {start_date}, End date: {end_date}, Budget: {budget}")
         try:
             destinations = self.client.suggest_destinations(vacation_type, month)
             trip_options = []
@@ -58,9 +57,8 @@ class TripPlanner:
 
     def show_trip_options(self, trip_options):
         trip_options_data = []
-        for idx, (destination, flight, hotel, total_price) in enumerate(trip_options, 1):
+        for destination, flight, hotel, total_price in trip_options:
             option = {
-                "index": idx,
                 "destination": destination,
                 "flight": {"airline": flight.airline, "price": flight.price},
                 "hotel": {"name": hotel.name, "price": hotel.price},
@@ -77,15 +75,15 @@ class TripPlanner:
 
     def create_daily_plan(self, destination, vacation_type, start_date, end_date, month):
         prompt = (f"Create a daily plan for a {vacation_type} vacation in {destination} from {start_date} to {end_date}. "
-                  f"Include activities and suggestions suitable for the month of {month}.")
+                  f"Include activities and suggestions suitable for the month of {month} , make each day a plan.")
 
         headers = {
-            'Authorization': f'Bearer {self.openai_api_key}',  # Use the stored API key
+            'Authorization': f'Bearer {self.openai_api_key}',  
             'Content-Type': 'application/json'
         }
 
         data = {
-            "model": "gpt-4",
+            "model": "gpt-3.5-turbo",
             "messages": [
                 {
                     "role": "user",
@@ -93,7 +91,7 @@ class TripPlanner:
                 }
             ],
             "temperature": 0.7,
-            "max_tokens": 300
+            "max_tokens": 3000
         }
 
         try:
@@ -149,7 +147,7 @@ class TripPlanner:
                 },
                 {
                     "role": "user",
-                    "content": f"Suggest 4 suitable image prompts for DALL-E that will describe the best attractions of this trip , make it nice and professional images: {activities}."
+                    "content": f"Suggest 4 suitable image prompts for DALL-E that will describe the best attractions of this trip based on the destination and the given activities, make it nice and professional images: {activities}."
                 }
             ],
             "temperature": 0.5,
