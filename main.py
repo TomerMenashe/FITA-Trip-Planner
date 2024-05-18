@@ -1,42 +1,84 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List
+from datetime import datetime
 from trip_planner import TripPlanner
+import logging
 
-def get_user_input():
-    vacation_type = input("Enter your preferred type of vacation (ski, beach, city): ")
-    start_date = input("Enter the start date of your trip (YYYY-MM-DD): ")
-    end_date = input("Enter the end date of your trip (YYYY-MM-DD): ")
-    budget = float(input("Enter your total budget for the trip in USD: "))
-    return vacation_type, start_date, end_date, budget
+app = FastAPI()
 
-def run_tests():
-    keys = {
-        "openai_api_key": "sk-proj-qhejt5MEC6gIQsXrrXUqT3BlbkFJXscAWR9AGMkzSnhapvP7",
-        "serpapi_key": "d6a8654640ef0b2dcec805a7939d03430074b2c0fc69e0e6810e02a51c76e808"
-    }
-    planner = TripPlanner(keys["openai_api_key"], keys["serpapi_key"])
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change this to the specific origin(s) if needed
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    test_cases = [
-        ("beach", "2024-06-01", "2024-06-15", 3000),
-        #("ski", "2024-12-01", "2024-12-15", 4000),
-        #("city", "2024-09-01", "2024-09-15", 2500)
-    ]
+# Replace these with your actual API keys
+OPENAI_API_KEY ="sk-proj-qhejt5MEC6gIQsXrrXUqT3BlbkFJXscAWR9AGMkzSnhapvP7"
+SERPAPI_KEY = "18fa1d9f64bca597a1ea23757919cfe7045603ccc7b31d5b83c832d9db47d43d"
 
-    for vacation_type, start_date, end_date, budget in test_cases:
-        print(f"\nRunning test case: {vacation_type}, {start_date} to {end_date}, Budget: {budget}")
-        planner.plan_trip(vacation_type, start_date, end_date, budget)
+trip_planner = TripPlanner(OPENAI_API_KEY, SERPAPI_KEY)
 
-def main():
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == 'test':
-        run_tests()
-    else:
-        keys = {
-            "openai_api_key": "sk-proj-qhejt5MEC6gIQsXrrXUqT3BlbkFJXscAWR9AGMkzSnhapvP7",
-            "serpapi_key": "d6a8654640ef0b2dcec805a7939d03430074b2c0fc69e0e6810e02a51c76e808"
-        }
+class TripRequest(BaseModel):
+    vacation_type: str
+    start_date: str
+    end_date: str
+    budget: float
 
-        vacation_type, start_date, end_date, budget = get_user_input()
-        planner = TripPlanner(keys["openai_api_key"], keys["serpapi_key"])
-        planner.plan_trip(vacation_type, start_date, end_date, budget)
+class TripChoice(BaseModel):
+    choice: int
 
-if __name__ == "__main__":
-    main()
+@app.post("/plan_trip")
+async def plan_trip(trip_request: TripRequest):
+    try:
+        print(f"Received trip planning request: {trip_request}")
+        trip_options = trip_planner.plan_trip(
+            trip_request.vacation_type,
+            trip_request.start_date,
+            trip_request.end_date,
+            trip_request.budget
+        )
+        if isinstance(trip_options, dict) and 'error' in trip_options:
+            raise HTTPException(status_code=400, detail=trip_options['error'])
+        return trip_options
+    except Exception as e:
+        print(f"Error planning trip: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/choose_trip")
+async def choose_trip(trip_choice: TripChoice):
+    try:
+        print(f"Received trip choice request: {trip_choice}")
+        trip_options = trip_planner.current_trip_options
+        if not trip_options:
+            raise HTTPException(status_code=400, detail="No trip options available. Please plan a trip first.")
+
+        selected_trip = trip_planner.choose_trip_option(trip_options, trip_choice.choice)
+        if not selected_trip:
+            raise HTTPException(status_code=400, detail="Invalid choice")
+
+        # Generate the detailed plan and images
+        month = datetime.strptime(trip_planner.current_start_date, "%Y-%m-%d").strftime('%B')
+        print(f"Generating daily plan for: {selected_trip['destination']}")
+        daily_plan = trip_planner.create_daily_plan(
+            selected_trip['destination'],
+            trip_planner.current_vacation_type,
+            trip_planner.current_start_date,
+            trip_planner.current_end_date,
+            month
+        )
+        selected_trip['daily_plan'] = daily_plan
+        activities = trip_planner.extract_activities(daily_plan)
+        print(f"Generating images for activities: {activities}")
+        image_urls = trip_planner.create_images(activities)
+        selected_trip['image_urls'] = image_urls
+
+        print(f"Selected trip: {selected_trip}")
+        return selected_trip
+    except Exception as e:
+        print(f"Error choosing trip: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

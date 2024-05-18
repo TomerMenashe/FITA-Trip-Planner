@@ -48,28 +48,37 @@ export default function Home() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const response = await axios.post('/api/plan_trip', {
-      vacation_type: vacationType,
-      start_date: startDate,
-      end_date: endDate,
-      budget: parseFloat(budget),
-    });
-    setTripOptions(response.data);
-    setLoading(false);
-    setSelectedTrip(null);
+    try {
+      const response = await axios.post('http://localhost:8000/plan_trip', {
+        vacation_type: vacationType,
+        start_date: startDate,
+        end_date: endDate,
+        budget: parseFloat(budget),
+      });
+      setTripOptions(response.data);
+      setLoading(false);
+      setShowForm(false); // Hide form after receiving trip options
+    } catch (error) {
+      console.error('Error planning trip:', error);
+      setLoading(false);
+    }
   };
 
   const handleSelectTrip = async (index) => {
     setLoading(true);
-    const response = await axios.post('/api/choose_trip', {
-      vacation_type: vacationType,
-      start_date: startDate,
-      end_date: endDate,
-      budget: parseFloat(budget),
-      choice: index + 1,
-    });
-    setSelectedTrip(response.data);
-    setLoading(false);
+    try {
+      console.log(`Sending choice: ${index + 1}`);
+      const response = await axios.post('http://localhost:8000/choose_trip', {
+        choice: index + 1,
+      });
+      console.log('Response received:', response.data);
+      setSelectedTrip(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error selecting trip:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      setLoading(false);
+    }
   };
 
   const toggleMute = () => {
@@ -90,7 +99,7 @@ export default function Home() {
     <main className={styles.mainContent}>
       <audio id="landing-music" src="/music/landing.mp3" loop muted />
       <audio id="loading-music" src="/music/loading.mp3" loop muted />
-      
+
       <div className={styles.muteIcon} onClick={toggleMute}>
         {isMuted ? '🔇' : '🔊'}
       </div>
@@ -108,7 +117,7 @@ export default function Home() {
             </span>
           </div>
         </div>
-      ) : !showForm ? (
+      ) : !hasInteracted ? (
         <div className={styles.landing}>
           <div className={styles.background}>
             <div className={styles.backgroundImage}></div>
@@ -118,39 +127,40 @@ export default function Home() {
             <button className={styles.button} onClick={handleStart}>Start</button>
           </div>
         </div>
-      ) : (
+      ) : showForm ? (
         <div className={styles.formContainer}>
           <div className={styles.background}>
             <div className={styles.backgroundImage}></div>
           </div>
+          <h2 className={styles.formTitle}>Let's start finding your vacation!</h2>
           <form className={styles.form} onSubmit={handleSubmit}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Start Date:</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className={styles.input} min={minStartDate} />
+            <div className={styles.horizontalForm}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Start Date:</label>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className={styles.input} min={minStartDate} />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>End Date:</label>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required className={styles.input} min={startDate} />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Budget (USD):</label>
+                <input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} required className={styles.input} />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Vacation Type:</label>
+                <select value={vacationType} onChange={(e) => setVacationType(e.target.value)} required className={styles.select}>
+                  <option value="">Select Vacation Type</option>
+                  <option value="ski">Ski</option>
+                  <option value="beach">Beach</option>
+                  <option value="city">City</option>
+                </select>
+              </div>
+              <button className={styles.button} type="submit">Search Trips</button>
             </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>End Date:</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required className={styles.input} min={startDate} />
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Budget (USD):</label>
-              <input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} required className={styles.input} />
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Vacation Type:</label>
-              <select value={vacationType} onChange={(e) => setVacationType(e.target.value)} required className={styles.select}>
-                <option value="">Select Vacation Type</option>
-                <option value="ski">Ski</option>
-                <option value="beach">Beach</option>
-                <option value="city">City</option>
-              </select>
-            </div>
-            <button className={styles.button} type="submit">Search Trips</button>
           </form>
         </div>
-      )}
-
-      {tripOptions.length > 0 && !selectedTrip && (
+      ) : tripOptions.length > 0 && !selectedTrip ? (
         <div className={styles.container}>
           <h1 className={styles.title}>Trip Options</h1>
           <ul className={styles.list}>
@@ -163,9 +173,7 @@ export default function Home() {
             ))}
           </ul>
         </div>
-      )}
-
-      {selectedTrip && (
+      ) : selectedTrip ? (
         <div className={styles.container}>
           <h1 className={styles.title}>Trip Details</h1>
           <p className={styles.detail}>Destination: {selectedTrip.destination}</p>
@@ -184,9 +192,9 @@ export default function Home() {
               <img key={index} src={url} alt={`Trip image ${index + 1}`} className={styles.image} />
             ))}
           </div>
-          <button className={styles.button} onClick={() => setSelectedTrip(null)}>Back to Options</button>
+          <button className={styles.button} onClick={() => { setSelectedTrip(null); setShowForm(false); }}>Back to Options</button>
         </div>
-      )}
+      ) : null}
     </main>
   );
 }
