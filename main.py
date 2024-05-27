@@ -18,22 +18,34 @@ app.add_middleware(
 )
 
 # Replace these with your actual API keys
-OPENAI_API_KEY ="sk-proj-qhejt5MEC6gIQsXrrXUqT3BlbkFJXscAWR9AGMkzSnhapvP7"
+OPENAI_API_KEY = "sk-proj-qhejt5MEC6gIQsXrrXUqT3BlbkFJXscAWR9AGMkzSnhapvP7"
 SERPAPI_KEY = "58796c0092cd30d52d77a6f1f14009c9b7b0b12e6026debdaf7cb4208f780fa1"
 
 trip_planner = TripPlanner(OPENAI_API_KEY, SERPAPI_KEY)
 
 class TripRequest(BaseModel):
+    """
+    Model for trip request input.
+    """
     vacation_type: str
     start_date: str
     end_date: str
     budget: float
 
 class TripChoice(BaseModel):
+    """
+    Model for trip choice input.
+    """
     choice: int
 
 @app.post("/plan_trip")
 async def plan_trip(trip_request: TripRequest):
+    """
+    Endpoint to plan a trip based on user input.
+    
+    :param trip_request: TripRequest: User input for planning a trip
+    :return: dict: Planned trip options
+    """
     try:
         trip_options = trip_planner.plan_trip(
             trip_request.vacation_type,
@@ -45,11 +57,17 @@ async def plan_trip(trip_request: TripRequest):
             raise HTTPException(status_code=400, detail=trip_options['error'])
         return trip_options
     except Exception as e:
-        print(f"Error planning trip: {e}")
+        logging.error(f"Error planning trip: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/choose_trip")
 async def choose_trip(trip_choice: TripChoice):
+    """
+    Endpoint to choose a trip option and generate detailed plan and images.
+    
+    :param trip_choice: TripChoice: User's choice of trip option
+    :return: dict: Selected trip details with daily plan and images
+    """
     try:
         trip_options = trip_planner.current_trip_options
         if not trip_options:
@@ -75,5 +93,5 @@ async def choose_trip(trip_choice: TripChoice):
 
         return selected_trip
     except Exception as e:
-        print(f"Error choosing trip: {e}")
+        logging.error(f"Error choosing trip: {e}")
         raise HTTPException(status_code=500, detail=str(e))

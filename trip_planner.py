@@ -4,7 +4,17 @@ from datetime import datetime
 import requests
 
 class TripPlanner:
+    """
+    A class to plan trips by fetching flight and hotel information, creating daily plans, and generating images for activities.
+    """
+    
     def __init__(self, openai_api_key, serpapi_key):
+        """
+        Initialize the TripPlanner with OpenAI and SerpAPI keys.
+        
+        :param openai_api_key: str: API key for OpenAI
+        :param serpapi_key: str: API key for SerpAPI
+        """
         self.client = APIClient(openai_api_key, serpapi_key)
         self.current_trip_options = []
         self.current_vacation_type = ""
@@ -14,6 +24,15 @@ class TripPlanner:
         self.serpapi_key = serpapi_key        
 
     def plan_trip(self, vacation_type, start_date, end_date, budget):
+        """
+        Plan a trip based on the vacation type, dates, and budget.
+        
+        :param vacation_type: str: Type of vacation (e.g., beach, adventure)
+        :param start_date: str: Start date of the trip in YYYY-MM-DD format
+        :param end_date: str: End date of the trip in YYYY-MM-DD format
+        :param budget: float: Total budget for the trip
+        :return: list: List of trip options or a dictionary with an error message
+        """
         month = datetime.strptime(start_date, "%Y-%m-%d").strftime('%B')
         self.current_vacation_type = vacation_type
         self.current_start_date = start_date
@@ -51,11 +70,23 @@ class TripPlanner:
             return {"error": str(e)}
 
     def extract_activities(self, daily_plan):
+        """
+        Extract a list of activities from a daily plan.
+        
+        :param daily_plan: str: The daily plan as a single string
+        :return: list: List of formatted activities
+        """
         activities = daily_plan.split('\n')
         formatted_activities = [activity.strip() for activity in activities if activity.strip()]
         return formatted_activities[:4]
 
     def show_trip_options(self, trip_options):
+        """
+        Format trip options for display.
+        
+        :param trip_options: list: List of trip options (destination, flight, hotel, total price)
+        :return: list: List of formatted trip options
+        """
         trip_options_data = []
         for destination, flight, hotel, total_price in trip_options:
             option = {
@@ -68,14 +99,31 @@ class TripPlanner:
         return trip_options_data
 
     def choose_trip_option(self, trip_options, choice):
+        """
+        Choose a specific trip option from the list.
+        
+        :param trip_options: list: List of available trip options
+        :param choice: int: User's choice (1-based index)
+        :return: dict: Selected trip option or None if invalid choice
+        """
         if 1 <= choice <= len(trip_options):
             return trip_options[choice - 1]
         else:
             return None
 
     def create_daily_plan(self, destination, vacation_type, start_date, end_date, month):
+        """
+        Create a daily plan for the trip using OpenAI API.
+        
+        :param destination: str: Destination city
+        :param vacation_type: str: Type of vacation
+        :param start_date: str: Start date of the trip in YYYY-MM-DD format
+        :param end_date: str: End date of the trip in YYYY-MM-DD format
+        :param month: str: Month of the trip
+        :return: str: Generated daily plan
+        """
         prompt = (f"Create a daily plan for a {vacation_type} vacation in {destination} from {start_date} to {end_date}. "
-                  f"Include activities and suggestions suitable for the month of {month} , make each day a plan.")
+                  f"Include activities and suggestions suitable for the month of {month}, make each day a plan.")
 
         headers = {
             'Authorization': f'Bearer {self.openai_api_key}',  
@@ -105,6 +153,12 @@ class TripPlanner:
             raise Exception(f"Failed to create daily plan from the OpenAI API: {e}")
 
     def create_images(self, activities):
+        """
+        Create images for activities using the OpenAI API.
+        
+        :param activities: list: List of activities
+        :return: list: List of image URLs
+        """
         headers = {
             'Authorization': f'Bearer {self.openai_api_key}',  # Use the stored API key
             'Content-Type': 'application/json'
@@ -133,6 +187,12 @@ class TripPlanner:
         return image_urls
 
     def suggest_activities_images(self, activities):
+        """
+        Suggest image prompts for activities using OpenAI API.
+        
+        :param activities: list: List of activities
+        :return: list: List of suggested image prompts
+        """
         headers = {
             'Authorization': f'Bearer {self.openai_api_key}',  # Use the stored API key
             'Content-Type': 'application/json'

@@ -3,13 +3,30 @@ from models import Flight, Hotel
 import re
 
 class APIClient:
+    """
+    A class to interact with the OpenAI and SerpAPI to fetch travel suggestions, flight details, and hotel details.
+    """
+    
     def __init__(self, openai_api_key, serpapi_key):
+        """
+        Initialize the APIClient with OpenAI and SerpAPI keys.
+        
+        :param openai_api_key: str: API key for OpenAI
+        :param serpapi_key: str: API key for SerpAPI
+        """
         self.openai_api_key = openai_api_key
         self.serpapi_key = serpapi_key
         self.google_flights_base_url = "https://serpapi.com/search?engine=google_flights"
         self.google_hotels_base_url = "https://serpapi.com/search?engine=google_hotels"
 
     def suggest_destinations(self, vacation_type, month):
+        """
+        Suggest travel destinations based on vacation type and month.
+        
+        :param vacation_type: str: Type of vacation (e.g., beach, adventure)
+        :param month: str: Month for travel
+        :return: list: List of destination suggestions
+        """
         headers = {
             'Authorization': f'Bearer {self.openai_api_key}',
             'Content-Type': 'application/json'
@@ -29,21 +46,33 @@ class APIClient:
         
         try:
             response = requests.post('https://api.openai.com/v1/chat/completions', headers=headers, json=data)
-            if response.ok:
-                suggestions = response.json()['choices'][0]['message']['content'].strip().split('\n')
-                return [destination.strip() for destination in suggestions if destination.strip()]
-            else:
-                raise Exception(f"Failed to fetch suggestions: {response.status_code} - {response.text}")
+            response.raise_for_status()
+            suggestions = response.json()['choices'][0]['message']['content'].strip().split('\n')
+            return [destination.strip() for destination in suggestions if destination.strip()]
         except requests.RequestException as e:
             print("API Error:", str(e))
             raise Exception("Failed to fetch data from the OpenAI API.")
 
     def extract_iata_code(self, destination):
+        """
+        Extract the IATA code from a destination string.
+        
+        :param destination: str: Destination string containing the IATA code
+        :return: str: Extracted IATA code
+        """
         match = re.search(r'\((.*?)\)', destination)
         return match.group(1) if match else None
 
     def fetch_flights(self, to_city, date_out, date_return):
-        departure_code = "TLV"
+        """
+        Fetch flight details from the Google Flights API via SerpAPI.
+        
+        :param to_city: str: Destination city
+        :param date_out: str: Outbound date in YYYY-MM-DD format
+        :param date_return: str: Return date in YYYY-MM-DD format
+        :return: Flight: Flight object containing flight details
+        """
+        departure_code = "TLV"  # Assuming departure from Tel Aviv (Ben Gurion Airport)
         arrival_code = self.extract_iata_code(to_city)
 
         if not arrival_code:
@@ -69,6 +98,15 @@ class APIClient:
             raise Exception(f"Failed to fetch flight details: {e}")
 
     def fetch_hotel(self, destination, date_checkin, date_checkout, budget):
+        """
+        Fetch hotel details from the Google Hotels API via SerpAPI.
+        
+        :param destination: str: Destination city
+        :param date_checkin: str: Check-in date in YYYY-MM-DD format
+        :param date_checkout: str: Check-out date in YYYY-MM-DD format
+        :param budget: int: Maximum budget for the hotel
+        :return: Hotel: Hotel object containing hotel details
+        """
         params = {
             "engine": "google_hotels",
             "q": f"hotels in {destination} near main attractions and landmarks, offering amenities such as free Wi-Fi, breakfast, and airport shuttle services",
@@ -89,6 +127,12 @@ class APIClient:
             raise Exception(f"Failed to fetch hotel details: {e}")
 
     def parse_flight_data(self, data):
+        """
+        Parse flight data received from the API.
+        
+        :param data: dict: Raw flight data from the API
+        :return: Flight: Parsed Flight object
+        """
         best_flights = data.get("best_flights", [])
         if not best_flights:
             return None
@@ -124,6 +168,13 @@ class APIClient:
         )
 
     def parse_hotel_data(self, data, budget):
+        """
+        Parse hotel data received from the API.
+        
+        :param data: dict: Raw hotel data from the API
+        :param budget: int: Maximum budget for the hotel
+        :return: Hotel: Parsed Hotel object
+        """
         hotels = data.get("properties", [])
         
         affordable_hotels = [hotel for hotel in hotels if hotel.get('total_rate', {}).get('extracted_lowest', float('inf')) <= budget]

@@ -4,6 +4,7 @@ import axios from 'axios';
 import styles from './page.module.css';
 
 export default function Home() {
+  // State variables
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [budget, setBudget] = useState('');
@@ -16,11 +17,13 @@ export default function Home() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
 
+  // Set minimum start date to today's date
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     setMinStartDate(today);
   }, []);
 
+  // Handle music playback based on user interaction and loading state
   useEffect(() => {
     const landingMusic = document.getElementById('landing-music');
     const loadingMusic = document.getElementById('loading-music');
@@ -38,6 +41,7 @@ export default function Home() {
     }
   }, [loading, selectedTrip, hasInteracted]);
 
+  // Handle start button click
   const handleStart = () => {
     setHasInteracted(true);
     setShowForm(true);
@@ -45,6 +49,7 @@ export default function Home() {
     landingMusic.play().catch(error => console.error('Failed to play landing music:', error));
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -64,23 +69,22 @@ export default function Home() {
     }
   };
 
+  // Handle selecting a trip option
   const handleSelectTrip = async (index) => {
     setLoading(true);
     try {
-      console.log(`Sending choice: ${index + 1}`);
       const response = await axios.post('http://localhost:8000/choose_trip', {
         choice: index + 1,
       });
-      console.log('Response received:', response.data);
       setSelectedTrip(response.data);
       setLoading(false);
     } catch (error) {
       console.error('Error selecting trip:', error);
-      console.error('Error details:', error.response?.data || error.message);
       setLoading(false);
     }
   };
 
+  // Handle new search button click
   const handleNewSearch = () => {
     setSelectedTrip(null);
     setTripOptions([]);
@@ -89,12 +93,14 @@ export default function Home() {
     landingMusic.play().catch(error => console.error('Failed to play landing music:', error));
   };
 
+  // Handle back to options button click
   const handleBackToOptions = () => {
     setSelectedTrip(null);
     const landingMusic = document.getElementById('landing-music');
     landingMusic.play().catch(error => console.error('Failed to play landing music:', error));
   };
 
+  // Toggle mute for music
   const toggleMute = () => {
     const landingMusic = document.getElementById('landing-music');
     const loadingMusic = document.getElementById('loading-music');
