@@ -18,8 +18,8 @@ app.add_middleware(
 )
 
 # Replace these with your actual API keys
-OPENAI_API_KEY = "sk-proj-qhejt5MEC6gIQsXrrXUqT3BlbkFJXscAWR9AGMkzSnhapvP7"
-SERPAPI_KEY = "58796c0092cd30d52d77a6f1f14009c9b7b0b12e6026debdaf7cb4208f780fa1"
+OPENAI_API_KEY = "you api key"
+SERPAPI_KEY = "your serpapi key"
 
 trip_planner = TripPlanner(OPENAI_API_KEY, SERPAPI_KEY)
 
