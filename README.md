@@ -44,4 +44,75 @@ Follow these steps to run the project locally.
 
    ```sh
    git clone https://github.com/yourusername/trip-planner-app.git
-   cd trip-planner-app
+   cd Trip-Planner
+   ### Installation
+
+2. **Set up the backend**
+
+stay in the same repository:
+
+Install Python dependencies:
+pip install -r requirements.txt
+
+Run the FastAPI server:
+uvicorn main:app --reload
+
+3. **Set up the frontend**
+
+Open a new terminal and navigate to the trip-planner directory:
+cd trip-planner
+
+Install Node.js dependencies:
+npm install
+
+Run the Next.js development server:
+npm run dev
+
+4. **Access the Application**
+
+Open your web browser and navigate to http://localhost:3000.
+
+### Usage
+Enter the start date, end date, budget, and trip type in the search form and click "Search".
+View the suggested destinations with total prices (flight + hotel) and select one.
+Review the daily itinerary and generated images for the chosen destination.
+
+
+## Project Structure
+
+```plaintext
+trip-planner-app/
+│
+│   ├── main.py
+│   ├── models.py
+│   ├── api_client.py
+│   ├── trip_planner.py
+│   └── ...
+│
+├── trip-planner/
+│   ├── pages/
+│   │   ├── index.js
+│   │   └── ...
+│   ├── package.json
+│   └── ...
+│
+└── README.md
+
+```
+
+### Contributing
+Contributions are welcome! Please follow these steps to contribute:
+
+Fork the repository.
+
+Create a new branch for your feature or bugfix.
+
+Commit your changes with clear and descriptive messages.
+
+Push your changes to your forked repository.
+
+Create a pull request to the main repository.
+
+### Author
+Tomer Menashe
+
