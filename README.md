@@ -19,13 +19,19 @@ This project comprises two main components:
 ## Screenshots
 
 ### Welcome Page
-![Welcome Page](https://github.com/TomerMenashe/trip-planner-app/blob/main/Screenshot%202024-05-27%20at%2019.22.10.png)
+![Welcome Page](./screenshots/welcomepage.png)
 
 ### Search Page
-![Search Page](https://github.com/TomerMenashe/trip-planner-app/blob/main/Screenshot%202024-05-27%20at%2019.22.40.png)
+![Search Page](./screenshots/searchpage.png)
 
-### Search Results
-![Search Results](https://github.com/TomerMenashe/trip-planner-app/blob/main/Screenshot%202024-05-27%20at%2019.23.19.png)
+### Loading Page
+![Loading Page](./screenshots/laodingpage.png)
+
+### Trip Options
+![Trip Options](./screenshots/selectingpage.png)
+
+### Trip Details
+![Trip Details](./screenshots/resultspage.png)
 
 ## Getting Started
 
